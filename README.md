@@ -31,6 +31,7 @@ o provider futuro `openai`.
 
 - `app/`: interface única do MVP, sem dashboard ou autenticação.
 - `app/api/plan/`: endpoint de planejamento com o Codex local autenticado.
+- `app/api/execute/`: execução determinística e idempotente após aprovação.
 - `lib/domain/`: schemas Zod do plano, aprovação e eventos de execução.
 - `lib/inventory/`: estoque local e implementação somente leitura de
   `check_inventory`.
@@ -53,11 +54,11 @@ controle do próprio Codex e nunca é copiada para o projeto.
 
 ## Estado desta etapa
 
-O botão **Gerar plano** usa o Codex real. O botão **Aprovar execução**
-continua desabilitado. `create_order`, `reserve_inventory` e `create_payment` já
-possuem executores locais idempotentes e testados, mas não estão conectados à
-interface nem são chamados automaticamente. O estado é mantido em memória no
-processo local e volta ao estoque inicial quando o servidor é reiniciado.
+O botão **Gerar plano** usa o Codex real. **Aprovar execução** só é habilitado
+quando o plano possui estoque suficiente e chama, nessa ordem, `create_order`,
+`reserve_inventory` e `create_payment`. A execução usa `operationId`, é atômica
+e idempotente, e permanece inteiramente local. O estado é mantido em memória no
+processo e volta ao estoque inicial quando o servidor é reiniciado.
 
 ## Validação
 

@@ -2,12 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 
+import type { ExecutionResult } from "@/lib/execution/schemas";
 import type { PlanApiResponse } from "@/lib/planning/schemas";
 
 const demoRequest =
   "A Ana pediu 20 kits festa para amanhã às 14h. Cada kit custa R$35. Reserve o estoque e prepare o pedido.";
 
 type RequestState = "idle" | "loading" | "success" | "error";
+type ExecutionState = "idle" | "loading" | "success" | "error";
 
 type ApiErrorPayload = {
   error?: {
@@ -43,12 +45,22 @@ export default function BalcaoClient() {
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [planResult, setPlanResult] = useState<PlanApiResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [executionState, setExecutionState] =
+    useState<ExecutionState>("idle");
+  const [executionResult, setExecutionResult] =
+    useState<ExecutionResult | null>(null);
+  const [executionErrorMessage, setExecutionErrorMessage] = useState<
+    string | null
+  >(null);
 
   async function handlePlanRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setRequestState("loading");
     setErrorMessage(null);
     setPlanResult(null);
+    setExecutionState("idle");
+    setExecutionResult(null);
+    setExecutionErrorMessage(null);
 
     try {
       const response = await fetch("/api/plan", {
@@ -77,6 +89,40 @@ export default function BalcaoClient() {
     }
   }
 
+  async function handleExecution() {
+    if (!planResult?.plan || !planResult.plan.inventoryAvailable) return;
+
+    setExecutionState("loading");
+    setExecutionErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: planResult.plan }),
+      });
+      const payload = (await response.json()) as ExecutionResult &
+        ApiErrorPayload;
+
+      if (!response.ok) {
+        throw new Error(
+          payload.error?.message ??
+            "Não foi possível concluir a execução. Tente novamente.",
+        );
+      }
+
+      setExecutionResult(payload);
+      setExecutionState("success");
+    } catch (error) {
+      setExecutionErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível concluir a execução. Tente novamente.",
+      );
+      setExecutionState("error");
+    }
+  }
+
   const plan = planResult?.plan;
   const inventoryCall = planResult?.toolCalls[0];
   const actions = plan
@@ -86,13 +132,19 @@ export default function BalcaoClient() {
           label: `Consultou ${inventoryCall?.result.product ?? plan.product}`,
           tag: "Leitura concluída",
           read: true,
+          completed: false,
         },
         ...plan.proposedActions.map((action) => ({
           tool: action.tool,
           label: action.description,
           tag:
-            action.status === "blocked" ? "Bloqueada" : "Após aprovação",
+            executionState === "success"
+              ? "Concluída"
+              : action.status === "blocked"
+                ? "Bloqueada"
+                : "Após aprovação",
           read: false,
+          completed: executionState === "success",
         })),
       ]
     : [];
@@ -268,7 +320,15 @@ export default function BalcaoClient() {
                     <strong>{action.label}</strong>
                     <code>{action.tool}</code>
                   </span>
-                  <span className={action.read ? "action-kind read" : "action-kind"}>
+                  <span
+                    className={
+                      action.read
+                        ? "action-kind read"
+                        : action.completed
+                          ? "action-kind complete"
+                          : "action-kind"
+                    }
+                  >
                     {action.tag}
                   </span>
                 </li>
@@ -292,12 +352,33 @@ export default function BalcaoClient() {
           <button
             className="approval-button"
             type="button"
-            disabled
-            title="A execução ainda não faz parte desta etapa"
+            onClick={handleExecution}
+            disabled={
+              !plan?.inventoryAvailable ||
+              requestState !== "success" ||
+              executionState === "loading" ||
+              executionState === "success"
+            }
+            title={
+              plan && !plan.inventoryAvailable
+                ? "Execução bloqueada por estoque insuficiente"
+                : executionState === "success"
+                  ? "Esta operação já foi concluída"
+                  : "Executar o plano aprovado"
+            }
           >
-            Aprovar execução
+            {executionState === "loading"
+              ? "Executando..."
+              : executionState === "success"
+                ? "Operação concluída"
+                : "Aprovar execução"}
           </button>
-          {planResult ? (
+          {plan && !plan.inventoryAvailable ? (
+            <p className="execution-blocked">
+              Execução bloqueada — estoque insuficiente
+            </p>
+          ) : null}
+          {planResult && executionState !== "success" ? (
             <p className="planning-attribution">
               Planejado com Codex <span aria-hidden="true">•</span> nenhuma ação
               executada ainda
@@ -314,18 +395,31 @@ export default function BalcaoClient() {
         <div>
           <p className="step-label">03 · Execução</p>
           <h2 id="execution-title">
-            {planResult
-              ? "1 tool de leitura chamada"
-              : requestState === "error"
-                ? "Planejamento não concluído"
-                : "Nenhuma tool chamada ainda"}
+            {executionState === "success"
+              ? "Operação concluída"
+              : executionState === "loading"
+                ? "Executando operação aprovada"
+                : plan && !plan.inventoryAvailable
+                  ? "Execução bloqueada — estoque insuficiente"
+                  : planResult
+                    ? "Plano aguardando sua aprovação"
+                    : requestState === "error"
+                      ? "Planejamento não concluído"
+                      : "Nenhuma tool chamada ainda"}
           </h2>
         </div>
-        <p>
-          {planResult ? (
+        <p className="execution-description">
+          {executionResult ? (
+            <>
+              Pedido, reserva de estoque e cobrança local foram registrados de
+              forma atômica.
+            </>
+          ) : executionState === "loading" ? (
+            <>Validando novamente o estoque antes de aplicar as alterações.</>
+          ) : planResult ? (
             <>
               <code>check_inventory</code> consultou o estado local. Nenhuma
-              mutação ocorreu; pedido, reserva e cobrança continuam pendentes.
+              mutação ocorrerá sem sua aprovação.
             </>
           ) : (
             <>
@@ -335,8 +429,69 @@ export default function BalcaoClient() {
           )}
         </p>
         <span className="empty-state">
-          {planResult ? "0 mutações" : "Aguardando plano"}
+          {executionResult
+            ? "Concluída"
+            : executionState === "loading"
+              ? "Em execução"
+              : plan && !plan.inventoryAvailable
+                ? "Bloqueada"
+                : planResult
+                  ? "Aguardando aprovação"
+                  : "Aguardando plano"}
         </span>
+
+        {executionErrorMessage ? (
+          <div className="execution-error" role="alert">
+            <strong>Execução não concluída</strong>
+            <p>{executionErrorMessage}</p>
+          </div>
+        ) : null}
+
+        {executionResult ? (
+          <>
+            <ol className="execution-timeline" aria-label="Ações executadas">
+              {executionResult.events.map((event) => (
+                <li key={event.tool}>
+                  <span aria-hidden="true">✓</span>
+                  <strong>{event.message}</strong>
+                  <code>{event.tool}</code>
+                </li>
+              ))}
+            </ol>
+
+            <dl className="execution-summary">
+              <div>
+                <dt>Pedido</dt>
+                <dd>#{executionResult.orderId}</dd>
+              </div>
+              <div>
+                <dt>Cobrança</dt>
+                <dd>#{executionResult.paymentId}</dd>
+              </div>
+              <div>
+                <dt>Total</dt>
+                <dd>{formatCurrency(executionResult.total)}</dd>
+              </div>
+              <div>
+                <dt>Estoque anterior</dt>
+                <dd>{executionResult.previousStock}</dd>
+              </div>
+              <div>
+                <dt>Estoque atual</dt>
+                <dd>{executionResult.currentStock}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>Operação concluída</dd>
+              </div>
+            </dl>
+
+            <p className="execution-attribution">
+              Execução determinística <span aria-hidden="true">•</span> aprovada
+              por você
+            </p>
+          </>
+        ) : null}
       </section>
     </main>
   );

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import {
   operationPlanSchema,
   type OperationPlan,
@@ -28,6 +30,7 @@ export function buildOperationPlan(
   );
 
   const plan = operationPlanSchema.parse({
+    operationId: randomUUID(),
     customer: intent.customer,
     product: inventoryResult.product,
     quantity: inventoryResult.requestedQuantity,

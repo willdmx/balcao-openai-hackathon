@@ -21,6 +21,7 @@ export const proposedActionSchema = z.object({
 });
 
 export const operationPlanSchema = z.object({
+  operationId: z.string().uuid(),
   customer: z.string().min(1),
   product: z.string().min(1),
   quantity: z.number().int().positive(),
