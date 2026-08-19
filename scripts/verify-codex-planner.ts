@@ -3,9 +3,17 @@ import assert from "node:assert/strict";
 import { buildOperationPlan } from "@/lib/planning/build-operation-plan";
 import { CodexLocalPlanner } from "@/lib/planning/codex-local-planner";
 
-const requests = [
-  "A Ana pediu 20 kits festa para amanhã às 14h. Cada kit custa R$35. Reserve o estoque e prepare o pedido.",
-  "A Ana pediu 200 kits festa para amanhã às 14h. Cada kit custa R$35.",
+const cases = [
+  {
+    label: "A",
+    request:
+      "A Ana pediu 20 kits festa para amanhã às 14h. Cada kit custa R$35. Reserve o estoque e prepare o pedido.",
+  },
+  {
+    label: "B",
+    request:
+      "A Ana pediu 200 kits festa para amanhã às 14h. Cada kit custa R$35.",
+  },
 ] as const;
 
 async function main() {
@@ -17,11 +25,27 @@ async function main() {
   const planner = new CodexLocalPlanner();
   const results = [];
 
-  for (const request of requests) {
-    const intent = await planner.interpret(request, { currentDateTime });
-    const response = buildOperationPlan(intent);
+  for (const benchmarkCase of cases) {
+    for (let run = 1; run <= 2; run += 1) {
+      const startedAt = performance.now();
+      const intent = await planner.interpret(benchmarkCase.request, {
+        currentDateTime,
+      });
+      const response = buildOperationPlan(intent);
+      const durationMs = Math.round(performance.now() - startedAt);
 
-    results.push({ intent, plan: response.plan });
+      results.push({
+        label: benchmarkCase.label,
+        run,
+        durationMs,
+        intent,
+        plan: response.plan,
+      });
+
+      console.log(
+        `[${benchmarkCase.label}#${run}] ${durationMs} ms | quantity=${response.plan.quantity} | available=${response.plan.inventoryAvailable}`,
+      );
+    }
   }
 
   assert.deepEqual(
@@ -44,11 +68,15 @@ async function main() {
       total: 700,
     },
   );
-  assert.equal(results[1].plan.quantity, 200);
+  assert.equal(results[1].plan.quantity, 20);
   assert.equal(results[1].plan.availableQuantity, 50);
-  assert.equal(results[1].plan.inventoryAvailable, false);
-
-  console.log(JSON.stringify(results, null, 2));
+  assert.equal(results[1].plan.inventoryAvailable, true);
+  assert.equal(results[2].plan.quantity, 200);
+  assert.equal(results[2].plan.availableQuantity, 50);
+  assert.equal(results[2].plan.inventoryAvailable, false);
+  assert.equal(results[3].plan.quantity, 200);
+  assert.equal(results[3].plan.availableQuantity, 50);
+  assert.equal(results[3].plan.inventoryAvailable, false);
 }
 
 void main();

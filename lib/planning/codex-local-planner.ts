@@ -21,7 +21,7 @@ import {
   PlanningResponseError,
 } from "@/lib/planning/errors";
 
-const DEFAULT_CODEX_TIMEOUT_MS = 60_000;
+const DEFAULT_CODEX_TIMEOUT_MS = 45_000;
 const MAX_PROCESS_OUTPUT_BYTES = 1_000_000;
 
 export const interpretedRequestJsonSchema = {
@@ -323,12 +323,16 @@ export class CodexLocalPlanner implements AIPlanner {
         "--json",
         "--sandbox",
         "read-only",
+        "-C",
+        temporaryDirectory,
         "--skip-git-repo-check",
         "--ignore-user-config",
         "--output-schema",
         schemaPath,
         "--config",
         'approval_policy="never"',
+        "--config",
+        'model_reasoning_effort="low"',
         "--config",
         'web_search="disabled"',
         "-",
