@@ -1,5 +1,23 @@
 # BALCÃO
 
+## Built during the hackathon
+
+O BALCÃO foi construído do zero durante o período oficial do OpenAI Hackathon
+Brasil 2026, em 19 de agosto de 2026.
+
+- interpretação em linguagem natural com Codex
+- planejamento estruturado validado com Zod
+- `check_inventory`
+- aprovação humana
+- `create_order`
+- `reserve_inventory`
+- `create_payment`
+- execução atômica
+- idempotência
+- bloqueio por estoque insuficiente
+
+O histórico de commits documenta o desenvolvimento realizado durante o evento.
+
 MVP criado para o OpenAI Hackathon Brasil 2026. O BALCÃO transforma uma
 solicitação em linguagem natural em um plano operacional revisável e só executa
 ações que alteram estado depois da aprovação humana.
