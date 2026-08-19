@@ -4,7 +4,7 @@ const initialInventory: InventoryItem[] = [
   {
     id: "prod_kit_festa",
     name: "Kit Festa",
-    availableQuantity: 80,
+    availableQuantity: 50,
     unitPriceCents: 3500,
   },
 ];

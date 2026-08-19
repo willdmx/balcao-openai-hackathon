@@ -14,33 +14,28 @@ export const inventoryItemSchema = z.object({
   unitPriceCents: z.number().int().nonnegative(),
 });
 
-export const orderRequestSchema = z.object({
-  customerName: z.string().min(1),
-  productName: z.string().min(1),
-  quantity: z.number().int().positive(),
-  unitPriceCents: z.number().int().nonnegative(),
-  dueAt: z.string().datetime({ offset: true }),
-  originalRequest: z.string().min(1),
-});
-
-export const planActionSchema = z.object({
-  tool: toolNameSchema,
-  kind: z.enum(["read", "mutation"]),
-  label: z.string().min(1),
-  arguments: z.record(z.string(), z.unknown()),
-  status: z.enum(["proposed", "completed", "blocked"]),
+export const proposedActionSchema = z.object({
+  tool: z.enum(["create_order", "reserve_inventory", "create_payment"]),
+  description: z.string().min(1),
+  status: z.enum(["pending_approval", "blocked"]),
 });
 
 export const operationPlanSchema = z.object({
-  id: z.string().min(1),
-  status: z.enum(["awaiting_approval", "approved", "rejected"]),
-  request: orderRequestSchema,
-  actions: z.array(planActionSchema).min(1),
-  totalCents: z.number().int().nonnegative(),
+  customer: z.string().min(1),
+  product: z.string().min(1),
+  quantity: z.number().int().positive(),
+  unitPrice: z.number().nonnegative(),
+  total: z.number().nonnegative(),
+  requestedDelivery: z.string().datetime({ offset: true }),
+  inventoryAvailable: z.boolean(),
+  availableQuantity: z.number().int().nonnegative(),
+  proposedActions: z.array(proposedActionSchema).length(3),
+  approvalStatus: z.literal("awaiting_approval"),
+  mutationsExecuted: z.literal(false),
 });
 
 export const approvedPlanSchema = operationPlanSchema.extend({
-  status: z.literal("approved"),
+  approvalStatus: z.literal("approved"),
 });
 
 export const executionEventSchema = z.object({
@@ -51,7 +46,7 @@ export const executionEventSchema = z.object({
 });
 
 export type InventoryItem = z.infer<typeof inventoryItemSchema>;
-export type OrderRequest = z.infer<typeof orderRequestSchema>;
+export type ProposedAction = z.infer<typeof proposedActionSchema>;
 export type OperationPlan = z.infer<typeof operationPlanSchema>;
 export type ApprovedPlan = z.infer<typeof approvedPlanSchema>;
 export type ExecutionEvent = z.infer<typeof executionEventSchema>;

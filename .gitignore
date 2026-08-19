@@ -20,6 +20,10 @@
 # production
 /build
 
+# local Codex runtime (binary only, never credentials)
+/.balcao-runtime/
+/.tmp-codex-runtime/
+
 # misc
 .DS_Store
 *.pem

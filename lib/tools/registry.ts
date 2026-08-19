@@ -1,4 +1,5 @@
 import type { FunctionTool } from "openai/resources/responses/responses";
+import { zodResponsesFunction } from "openai/helpers/zod";
 
 import { approvedPlanSchema, type OperationPlan } from "@/lib/domain/schemas";
 import {
@@ -8,22 +9,12 @@ import {
   reserveInventoryArgumentsSchema,
 } from "@/lib/tools/contracts";
 
-const checkInventoryTool = {
-  type: "function",
+const checkInventoryTool = zodResponsesFunction({
   name: "check_inventory",
   description:
-    "Verifica o estoque disponível sem alterar nenhum dado. Se faltar estoque, retorna status insufficient e o déficit.",
-  strict: true,
-  parameters: {
-    type: "object",
-    properties: {
-      productName: { type: "string", description: "Nome do produto" },
-      quantity: { type: "integer", minimum: 1, description: "Quantidade solicitada" },
-    },
-    required: ["productName", "quantity"],
-    additionalProperties: false,
-  },
-} satisfies FunctionTool;
+    "Consulta o estoque local de um produto sem alterar nenhum dado. Use o nome canônico do catálogo e a quantidade solicitada.",
+  parameters: checkInventoryArgumentsSchema,
+});
 
 const createOrderTool = {
   type: "function",
@@ -33,6 +24,7 @@ const createOrderTool = {
   parameters: {
     type: "object",
     properties: {
+      idempotencyKey: { type: "string", minLength: 1, maxLength: 200 },
       customerName: { type: "string" },
       productName: { type: "string" },
       quantity: { type: "integer", minimum: 1 },
@@ -40,6 +32,7 @@ const createOrderTool = {
       dueAt: { type: "string", format: "date-time" },
     },
     required: [
+      "idempotencyKey",
       "customerName",
       "productName",
       "quantity",
@@ -59,11 +52,12 @@ const reserveInventoryTool = {
   parameters: {
     type: "object",
     properties: {
+      idempotencyKey: { type: "string", minLength: 1, maxLength: 200 },
       orderId: { type: "string" },
       productName: { type: "string" },
       quantity: { type: "integer", minimum: 1 },
     },
-    required: ["orderId", "productName", "quantity"],
+    required: ["idempotencyKey", "orderId", "productName", "quantity"],
     additionalProperties: false,
   },
 } satisfies FunctionTool;
@@ -76,12 +70,19 @@ const createPaymentTool = {
   parameters: {
     type: "object",
     properties: {
+      idempotencyKey: { type: "string", minLength: 1, maxLength: 200 },
       orderId: { type: "string" },
       customerName: { type: "string" },
       amountCents: { type: "integer", minimum: 0 },
       dueAt: { type: "string", format: "date-time" },
     },
-    required: ["orderId", "customerName", "amountCents", "dueAt"],
+    required: [
+      "idempotencyKey",
+      "orderId",
+      "customerName",
+      "amountCents",
+      "dueAt",
+    ],
     additionalProperties: false,
   },
 } satisfies FunctionTool;

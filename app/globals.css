@@ -260,6 +260,10 @@ textarea:focus {
   background: var(--green);
 }
 
+.primary-button:not(:disabled) {
+  cursor: pointer;
+}
+
 .primary-button:disabled,
 .approval-button:disabled {
   cursor: not-allowed;
@@ -273,6 +277,26 @@ textarea:focus {
   padding: 15px;
   background: var(--green-soft);
   border-radius: 13px;
+}
+
+.form-error {
+  margin-top: 16px;
+  padding: 14px 15px;
+  color: #8f351f;
+  background: var(--orange-soft);
+  border: 1px solid #f2c7b4;
+  border-radius: 13px;
+}
+
+.form-error strong {
+  display: block;
+  font-size: 0.8rem;
+}
+
+.form-error p {
+  margin-top: 4px;
+  font-size: 0.73rem;
+  line-height: 1.5;
 }
 
 .safety-icon,
@@ -367,6 +391,20 @@ textarea:focus {
   font-size: 0.78rem;
 }
 
+.inventory-check.unavailable {
+  color: #8f351f;
+  background: var(--orange-soft);
+  border-color: #f2c7b4;
+}
+
+.inventory-check.unavailable .inventory-icon {
+  background: var(--orange);
+}
+
+.inventory-check.unavailable small {
+  color: #9b5b45;
+}
+
 .inventory-check small {
   margin-top: 2px;
   color: #55736b;
@@ -392,6 +430,15 @@ textarea:focus {
   align-items: center;
   padding: 11px 0;
   border-bottom: 1px solid #e7e7e1;
+}
+
+.action-list .action-placeholder {
+  display: block;
+  padding: 28px 12px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 .action-number {
@@ -461,6 +508,17 @@ textarea:focus {
   margin-top: 16px;
   color: #fff;
   background: var(--orange);
+}
+
+.planning-attribution {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.planning-attribution span {
+  margin: 0 4px;
 }
 
 .execution-strip {

@@ -1,20 +1,19 @@
 import { z } from "zod";
 
 export const checkInventoryArgumentsSchema = z.object({
-  productName: z.string().min(1),
+  product: z.string().min(1),
   quantity: z.number().int().positive(),
 });
 
 export const checkInventoryResultSchema = z.object({
-  status: z.enum(["available", "insufficient"]),
-  productId: z.string().min(1),
-  productName: z.string().min(1),
+  product: z.string().min(1),
   requestedQuantity: z.number().int().positive(),
   availableQuantity: z.number().int().nonnegative(),
-  shortfall: z.number().int().nonnegative(),
+  available: z.boolean(),
 });
 
 export const createOrderArgumentsSchema = z.object({
+  idempotencyKey: z.string().min(1).max(200),
   customerName: z.string().min(1),
   productName: z.string().min(1),
   quantity: z.number().int().positive(),
@@ -29,6 +28,7 @@ export const createOrderResultSchema = z.object({
 });
 
 export const reserveInventoryArgumentsSchema = z.object({
+  idempotencyKey: z.string().min(1).max(200),
   orderId: z.string().min(1),
   productName: z.string().min(1),
   quantity: z.number().int().positive(),
@@ -48,6 +48,7 @@ export const reserveInventoryResultSchema = z.discriminatedUnion("status", [
 ]);
 
 export const createPaymentArgumentsSchema = z.object({
+  idempotencyKey: z.string().min(1).max(200),
   orderId: z.string().min(1),
   customerName: z.string().min(1),
   amountCents: z.number().int().nonnegative(),

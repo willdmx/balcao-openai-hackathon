@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "codex:setup": "pwsh -NoProfile -File scripts/setup-codex-runtime.ps1",
+    "codex:login": "pwsh -NoProfile -File scripts/login-codex.ps1",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
+    "test:codex": "tsx scripts/verify-codex-planner.ts"
   },
   "dependencies": {
     "next": "16.3.1",
@@ -21,6 +26,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }

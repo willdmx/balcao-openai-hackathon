@@ -15,22 +15,55 @@ npm run dev
 
 Acesse `http://localhost:3000`.
 
-Para a próxima etapa, copie `.env.example` para `.env.local` e preencha
-`OPENAI_API_KEY`. A interface e os contratos não dependem da chave para compilar.
+No Windows, prepare e autentique uma vez o runtime local do Codex:
+
+```bash
+npm run codex:setup
+npm run codex:login
+```
+
+Copie `.env.example` para `.env.local` e mantenha
+`BALCAO_AI_PROVIDER=codex`. Esse modo usa a autenticação local do Codex e não
+exige `OPENAI_API_KEY`. A chave e `OPENAI_MODEL` ficam disponíveis somente para
+o provider futuro `openai`.
 
 ## Arquitetura mínima
 
 - `app/`: interface única do MVP, sem dashboard ou autenticação.
+- `app/api/plan/`: endpoint de planejamento com o Codex local autenticado.
 - `lib/domain/`: schemas Zod do plano, aprovação e eventos de execução.
-- `lib/inventory/`: estado inicial da demonstração.
-- `lib/tools/`: argumentos, resultados e definições das quatro tools.
+- `lib/inventory/`: estoque local e implementação somente leitura de
+  `check_inventory`.
+- `lib/planning/`: providers de IA, interpretação estruturada e montagem
+  determinística do plano.
+- `lib/state/`: armazenamento local em memória para estoque, pedidos, reservas,
+  cobranças e registros de idempotência.
+- `lib/tools/`: contratos, definições e executores validados das quatro tools.
 
-O registro de tools expõe ao planejador somente `check_inventory`. As três tools
-que alteram estado só podem ser obtidas por `getExecutionToolsForApprovedPlan`,
-que valida o estado `approved` antes de liberá-las.
+O planejamento usa a abstração `AIPlanner`, com `CodexLocalPlanner` para a demo
+e `OpenAIResponsesPlanner` preservado para uso futuro. O provider interpreta
+somente cliente, produto, quantidade, preço, prazo e ações solicitadas. Depois,
+o código da aplicação chama `check_inventory`, calcula o total e monta um
+`OperationPlan` validado com Zod.
+
+O Codex roda de forma efêmera em um diretório temporário vazio, com sandbox
+somente leitura, sem web, sem configuração do usuário e com timeout. O runtime
+local em `.balcao-runtime` é ignorado pelo Git; a autenticação permanece sob
+controle do próprio Codex e nunca é copiada para o projeto.
 
 ## Estado desta etapa
 
-A interface é uma prévia fiel do golden path. Os botões de planejamento e
-aprovação estão intencionalmente desabilitados até a integração da OpenAI e dos
-executores em memória na próxima etapa. Nenhuma mutação é simulada.
+O botão **Gerar plano** usa o Codex real. O botão **Aprovar execução**
+continua desabilitado. `create_order`, `reserve_inventory` e `create_payment` já
+possuem executores locais idempotentes e testados, mas não estão conectados à
+interface nem são chamados automaticamente. O estado é mantido em memória no
+processo local e volta ao estoque inicial quando o servidor é reiniciado.
+
+## Validação
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
